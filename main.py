@@ -1,108 +1,69 @@
 import os
 import mercadopago
-import threading
+import requests
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
 
-# === TOKENS VIA VARIÁVEIS DE AMBIENTE ===
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-MP_TOKEN = str(os.getenv('MP_TOKEN', ''))
+# Tokens
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+MP_TOKEN = os.getenv("MP_TOKEN")
 
-if not MP_TOKEN:
-    raise ValueError("MP_TOKEN não encontrado. Verifique as variáveis de ambiente.")
-
-# === CONFIG MERCADOPAGO ===
+# SDK MercadoPago
 sdk = mercadopago.SDK(MP_TOKEN)
 
+user_payment_pending = {}
+
 def start(update: Update, context: CallbackContext):
-    texto = """
-🔥🌶️ *GARANTA AGORA SEU ACESSO AO GRUPO VIP MAIS INSANO DO BRASIL!* 🔥
+    keyboard = [[InlineKeyboardButton("💳 Gerar QR Code para PIX", callback_data="pagar_pix")]]
+    update.message.reply_text("🔐 *Bem-vindo ao sistema de acesso VIP!*
 
-📦 Receba conteúdos exclusivos e atualizados 24H.
-💥 Seja um membro VIP e aproveite as promoções enquanto durarem!
+Clique abaixo para gerar o QR Code de pagamento PIX.", 
+                              parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
 
-Clique abaixo para escolher seu plano e se deliciar com conteúdo 🔥🌶️
-"""
-    keyboard = [
-        [InlineKeyboardButton("VIP 1 ANO ( + Vendido ) – R$ 69,99", callback_data='vip_1ano')],
-        [InlineKeyboardButton("VIP 3 MESES 40%OFF – R$ 34,99", callback_data='vip_3meses')],
-        [InlineKeyboardButton("VIP MENSAL 30%OFF – R$ 22,99", callback_data='vip_mensal')],
-        [InlineKeyboardButton("VIP SEMANAL 25%OFF – R$ 12,99", callback_data='vip_semanal')],
-        [InlineKeyboardButton("VIP VITALÍCIO ( PROMOÇÃO ) ⭕ – R$ 99,99", callback_data='vip_vitalicio')],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text(texto, parse_mode='Markdown', reply_markup=reply_markup)
-
-def gerar_pagamento(valor, descricao):
+def gerar_preferencia(valor, user_id):
     preference_data = {
         "items": [
             {
-                "title": descricao,
+                "title": "Acesso VIP Mega Vaza +",
                 "quantity": 1,
                 "unit_price": float(valor)
             }
-        ]
+        ],
+        "notification_url": f"https://seuapp.onrender.com/webhook?user_id={user_id}"
     }
     preference_response = sdk.preference().create(preference_data)
-    return preference_response["response"]["init_point"]
+    return preference_response["response"]
 
-def liberar_acesso_falso(chat_id, context):
-    context.bot.send_message(
-        chat_id=chat_id,
-        text="""
-✅ *Pagamento confirmado!*
+def pagar_pix(update: Update, context: CallbackContext):
+    query = update.callback_query
+    user_id = query.from_user.id
+    preference = gerar_preferencia(14.90, user_id)
 
-Sua assinatura foi validada com sucesso.
+    qr_img_base64 = preference["point_of_interaction"]["transaction_data"]["qr_code_base64"]
+    qr_data = preference["point_of_interaction"]["transaction_data"]["qr_code"]
 
-🔥 Clique no botão abaixo para acessar seu conteúdo VIP:
-👉 [ENTRAR AGORA](https://t.me/teugrupovip)
+    user_payment_pending[str(user_id)] = True
 
-📞 Suporte: @teucontatofake
-""",
+    context.bot.send_photo(
+        chat_id=query.message.chat_id,
+        photo=qr_img_base64,
+        caption=f"💳 *Chave PIX gerada com sucesso!*
+
+Escaneie o QR ou copie e cole no seu app:
+
+`{qr_data}`
+
+📤 Após o pagamento, aguarde liberação automática.",
         parse_mode='Markdown'
     )
-
-def button_handler(update: Update, context: CallbackContext):
-    query = update.callback_query
-    query.answer()
-
-    planos = {
-        'vip_1ano': (69.99, "Plano VIP 1 Ano"),
-        'vip_3meses': (34.99, "Plano VIP 3 Meses"),
-        'vip_mensal': (22.99, "Plano VIP Mensal"),
-        'vip_semanal': (12.99, "Plano VIP Semanal"),
-        'vip_vitalicio': (99.99, "Plano VIP Vitalício"),
-    }
-
-    if query.data in planos:
-        valor, descricao = planos[query.data]
-        link = gerar_pagamento(valor, descricao)
-
-        query.edit_message_text(
-            text=f"""
-✅ Clique no link abaixo para efetuar o pagamento do *{descricao}*:
-
-👉 [Pagar com MercadoPago]({link})
-
-⚠️ Após o pagamento, aguarde até 10 minutos para liberação automática.
-
-📤 Ou envie seu comprovante aqui no chat para agilizar.
-""", parse_mode='Markdown'
-        )
-
-        chat_id = query.message.chat.id
-        threading.Timer(600, liberar_acesso_falso, args=(chat_id, context)).start()
 
 def main():
     updater = Updater(TELEGRAM_TOKEN, use_context=True)
     dp = updater.dispatcher
-
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CallbackQueryHandler(button_handler))
-
+    dp.add_handler(CallbackQueryHandler(pagar_pix, pattern="pagar_pix"))
     updater.start_polling()
-    print("BOT MEGA VAZA + ONLINE ✅")
     updater.idle()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
