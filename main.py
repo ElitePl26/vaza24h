@@ -17,7 +17,7 @@ def start(update: Update, context: CallbackContext):
     keyboard = [[InlineKeyboardButton("💳 Gerar QR Code para PIX", callback_data="pagar_pix")]]
     update.message.reply_text("🔐 *Bem-vindo ao sistema de acesso VIP!*")
 
-Clique abaixo para gerar o QR Code de pagamento PIX.", 
+"Clique abaixo para gerar o QR Code de pagamento PIX.", 
                               parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
 
 def gerar_preferencia(valor, user_id):
@@ -28,7 +28,7 @@ def gerar_preferencia(valor, user_id):
                 "quantity": 1,
                 "unit_price": float(valor)
             }
-        ],
+        ]
         "notification_url": f"https://seuapp.onrender.com/webhook?user_id={user_id}"
     }
     preference_response = sdk.preference().create(preference_data)
