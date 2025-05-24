@@ -18,6 +18,7 @@ def start(update: Update, context: CallbackContext):
     update.message.reply_text("🔐 *Bem-vindo ao sistema de acesso VIP!*")
 
 "Clique abaixo para gerar o QR Code de pagamento PIX.", 
+ "/opt/render/project/src/main.py"
                               parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
 
 def gerar_preferencia(valor, user_id):
