@@ -1,6 +1,5 @@
 import os
 import mercadopago
-import requests
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
 
@@ -11,25 +10,25 @@ MP_TOKEN = os.getenv("MP_TOKEN")
 # SDK MercadoPago
 sdk = mercadopago.SDK(MP_TOKEN)
 
+# Usuários com pagamento pendente
 user_payment_pending = {}
 
 def start(update: Update, context: CallbackContext):
     keyboard = [[InlineKeyboardButton("💳 Gerar QR Code para PIX", callback_data="pagar_pix")]]
-    update.message.reply_text("🔐 *Bem-vindo ao sistema de acesso VIP!*")
-
-"Clique abaixo para gerar o QR Code de pagamento PIX.", 
- "/opt/render/project/src/main.py"
-                              parse_mode='Markdown', reply_markup=InlineKeyboardMarkup(keyboard))
+    update.message.reply_text(
+        "🔐 *Bem-vindo ao sistema de acesso VIP!*\n\n"
+        "Clique abaixo para gerar o QR Code de pagamento PIX.",
+        parse_mode='Markdown',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 def gerar_preferencia(valor, user_id):
     preference_data = {
-        "items": [
-            {
-                "title": "Acesso VIP Mega Vaza +",
-                "quantity": 1,
-                "unit_price": float(valor)
-            }
-        ]
+        "items": [{
+            "title": "Acesso VIP Mega Vaza +",
+            "quantity": 1,
+            "unit_price": float(valor)
+        }],
         "notification_url": f"https://seuapp.onrender.com/webhook?user_id={user_id}"
     }
     preference_response = sdk.preference().create(preference_data)
@@ -48,13 +47,12 @@ def pagar_pix(update: Update, context: CallbackContext):
     context.bot.send_photo(
         chat_id=query.message.chat_id,
         photo=qr_img_base64,
-        caption=f"💳 *Chave PIX gerada com sucesso!*
-
-Escaneie o QR ou copie e cole no seu app:
-
-`{qr_data}`
-
-📤 Após o pagamento, aguarde liberação automática.",
+        caption=(
+            f"💳 *Chave PIX gerada com sucesso!*\n\n"
+            f"Escaneie o QR ou copie e cole no seu app:\n\n"
+            f"`{qr_data}`\n\n"
+            f"📤 Após o pagamento, aguarde liberação automática."
+        ),
         parse_mode='Markdown'
     )
 
