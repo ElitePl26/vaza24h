@@ -6,7 +6,10 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, Callback
 
 # === TOKENS VIA VARIÁVEIS DE AMBIENTE ===
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-MP_TOKEN = os.getenv('MP_TOKEN')
+MP_TOKEN = str(os.getenv('MP_TOKEN', ''))
+
+if not MP_TOKEN:
+    raise ValueError("MP_TOKEN não encontrado. Verifique as variáveis de ambiente.")
 
 # === CONFIG MERCADOPAGO ===
 sdk = mercadopago.SDK(MP_TOKEN)
@@ -87,7 +90,6 @@ def button_handler(update: Update, context: CallbackContext):
 """, parse_mode='Markdown'
         )
 
-        # Liberação fake real após 10 minutos
         chat_id = query.message.chat.id
         threading.Timer(600, liberar_acesso_falso, args=(chat_id, context)).start()
 
@@ -99,7 +101,7 @@ def main():
     dp.add_handler(CallbackQueryHandler(button_handler))
 
     updater.start_polling()
-    print("BOT MEGA VAZA + ONLINE NO RENDER ✅")
+    print("BOT MEGA VAZA + ONLINE ✅")
     updater.idle()
 
 if __name__ == '__main__':
