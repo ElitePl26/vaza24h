@@ -37,11 +37,6 @@ def gerar_preferencia(valor, user_id):
     return preference_response["response"]
 
 
-"notification_url": f"https://vaza24h.onrender.com/webhook?user_id={user_id}"
-    
-    preference_response = sdk.preference().create(preference_data)
-    return preference_response["response"]
-
 def pagar_pix(update: Update, context: CallbackContext):
     query = update.callback_query
     user_id = query.from_user.id
