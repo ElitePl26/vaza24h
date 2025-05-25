@@ -13,8 +13,11 @@ def webhook():
     if data and "data" in data and "id" in data["data"]:
         payment_id = data["data"]["id"]
 
-        headers = {"Authorization": f"Bearer {MP_TOKEN}"}
+        headers = {
+            "Authorization": f"Bearer {MP_TOKEN}"
+        }
         r = requests.get(f"https://api.mercadopago.com/v1/payments/{payment_id}", headers=headers)
+
         if r.status_code == 200:
             payment_info = r.json()
             if payment_info.get("status") == "approved":
@@ -32,4 +35,8 @@ Clique abaixo para solicitar seu acesso VIP:
                             "parse_mode": "Markdown"
                         }
                     )
-    return "", 200
+    return "OK", 200
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
